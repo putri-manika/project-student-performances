@@ -1,0 +1,373 @@
+---
+title: Perbandingan Analisis MANOVA dan MANCOVA dalam Mengkaji Pengaruh Faktor Sosial
+  dan Akademik terhadap Performa Siswa Sekolah Menengah
+author: "Kelompok 6 (23B)"
+date: "2025-05-26"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Pemeriksaan Data
+
+```{r Baca Dataset}
+df_mat <- read.csv2("student-mat.csv")
+df_mat
+```
+
+```{r Kurangi Variabel}
+df_mat <- df_mat[, c("sex", "studytime", "failures", "goout", "famsup",
+                     "health", "romantic", "age", "absences", "G1", "G2", "G3")]
+
+df_mat
+```
+
+```{r Ubah Variabel Independen menjadi Bertipe Faktor}
+df_mat$sex       <- as.factor(df_mat$sex)
+df_mat$studytime <- as.factor(df_mat$studytime)
+df_mat$failures  <- as.factor(df_mat$failures)
+df_mat$goout     <- as.factor(df_mat$goout)
+df_mat$famsup    <- as.factor(df_mat$famsup)
+df_mat$health    <- as.factor(df_mat$health)
+df_mat$romantic  <- as.factor(df_mat$romantic)
+df_mat
+```
+
+```{r Cek Missing Value}
+cat("Missing Values Setiap Kolom:\n")
+colSums(is.na(df_mat))
+```
+
+# Uji Asumsi Awal
+
+```{r Normalitas Univariat}
+for (col in c("G1", "G2", "G3")) {
+  result <- shapiro.test(df_mat[[col]])
+  cat(sprintf("%s: p-value = %.7f\n", col, result$p.value))
+}
+```
+
+Hasil p-value di atas jauh lebih rendah dari 0.05, hal ini membuktikan bahwa setiap variabel dependen tidak berdistribusi normal.
+
+```{r Normalitas Multivariat}
+library(MVN)
+result <- mvn(data = df_mat[, c("G1", "G2", "G3")], mvnTest = "hz")
+print(result$multivariateNormality)
+```
+
+Karena jelas MVN (Multivariate Normality) = NO dan karena p-value = 0 (biasanya artinya \< 0.001), maka tolak H₀. Jadi kesimpulannya, data G1, G2, dan G3 secara multivariat tidak mengikuti distribusi normal.
+
+```{r Homogenitas Matriks Kovarians}
+library(biotools)
+
+group_vars <- c("sex", "studytime", "failures", "goout", "famsup", "health", "romantic")
+dv <- c("G1", "G2", "G3")
+
+for (gv in group_vars) {
+  cat(paste0("\n--- Box's M Test untuk grup: ", gv, " ---\n"))
+
+  group <- df_mat[[gv]]
+  data_dv <- df_mat[, dv]
+
+  hasil <- boxM(data_dv, group)
+  
+  chi2 <- hasil$statistic
+  pval <- hasil$p.value
+  equal_cov <- ifelse(pval > 0.05, "Yes", "No")
+
+  cat(sprintf("Chi2: %.4f | p-value: %.4f | Equal covariance: %s\n", chi2, pval, equal_cov))
+}
+```
+
+hanya "famsup" (dukungan keluarga) yang menunjukkan p-value = 0.5063, artinya matriks kovarians antar grup berdasarkan variabel ini bisa dianggap homogen sedangkan variabel yang lain (sex, studytime, failures, goout, health, romantic) menunjukkan p-value \< 0.05, artinya tidak memenuhi asumsi kesamaan kovarians.
+
+```{r Linearitas antara DV dengan Kovariat}
+library(ggplot2)
+library(rlang)
+library(patchwork)
+
+dvs <- c("G1", "G2", "G3")
+covariates <- c("age", "absences")
+
+plot_list <- list()
+
+for (dv in dvs) {
+  for (cov in covariates) {
+    p <- ggplot(df_mat, aes(x = !!sym(cov), y = !!sym(dv))) +
+      geom_point(color = "steelblue") +
+      geom_smooth(method = "lm", se = FALSE, color = "red") +
+      ggtitle(paste("Linearitas antara", dv, "dan", cov))
+    plot_list[[paste(dv, cov, sep = "_")]] <- p
+  }
+}
+
+combined_plot <- wrap_plots(plot_list, ncol = length(covariates))
+print(combined_plot)
+```
+
+-   G1 dan G2: Umur dan absensi naik, tapi nilai sedikit turun (regresi negatif, tapi landai)
+-   G3: Umur naik, nilai turun tipis, absensi naik, nilai juga naik tipis
+-   Umur & absensi hampir tidak menjelaskan variasi nilai, atau pada intinya faktor umur & ketidakhadiran nyaris tidak memengaruhi nilai ujian akhir.
+
+```{r Multikolinearitas antar Kovariat}
+library(ggplot2)
+library(reshape2)
+library(RColorBrewer)
+
+corr_matrix <- cor(df_mat[, c("age", "absences")])
+
+corr_melted <- melt(corr_matrix)
+
+ggplot(data = corr_melted, aes(x = Var1, y = Var2, fill = value)) +
+  geom_tile(color = "white") +
+  scale_fill_gradient2(
+    low = "blue", mid = "white", high = "red", midpoint = 0,
+    name = "Correlation"
+  ) +
+  geom_text(aes(label = round(value, 2)), color = "black", size = 5) +
+  theme_minimal() +
+  labs(title = "Korelasi antar variabel kovariat", x = "", y = "") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+Interpretasi untuk 0.18:
+
+-   Semakin tua siswa cenderung punya sedikit lebih banyak ketidakhadiran, tapi hubungan ini sangat lemah.
+
+-   Nilai 0,18 jauh di bawah 0,5, artinya umur hampir tidak bisa memprediksi absences dengan baik, hanya sekitar 3% (0,18²) variansi absences yang bisa dijelaskan oleh umur.
+
+# Perbaiki Asumsi
+
+```{r Cek Outlier}
+library(ggplot2)
+library(gridExtra)
+
+list_var_numerik <- c("age", "absences", "G1", "G2", "G3")
+
+plot_list <- list()
+
+for (i in seq_along(list_var_numerik)) {
+  var <- list_var_numerik[i]
+  p <- ggplot(df_mat, aes_string(x = var)) +
+    geom_boxplot(fill = "skyblue", color = "black", outlier.color = "red") +
+    labs(title = var, x = NULL, y = NULL) +
+    theme_minimal()
+  plot_list[[i]] <- p
+}
+
+do.call(grid.arrange, c(plot_list, ncol = 3))
+```
+
+Untuk setiap kolom, outlier diidentifikasi menggunakan metode IQR (interquartile range), yaitu dengan menghitung batas bawah dan atas (Q1 - 1.5×IQR dan Q3 + 1.5×IQR). Baris yang memiliki nilai di luar rentang tersebut akan dihapus dari dataset.
+
+```{r Handling Outlier}
+list_var_numerik <- c("age", "absences", "G1", "G2", "G3")
+
+for (col in list_var_numerik) {
+  Q1 <- quantile(df_mat[[col]], 0.25, na.rm = TRUE)
+  Q3 <- quantile(df_mat[[col]], 0.75, na.rm = TRUE)
+  IQR <- Q3 - Q1
+  lower_bound <- Q1 - 1.5 * IQR
+  upper_bound <- Q3 + 1.5 * IQR
+
+  df_mat <- df_mat[df_mat[[col]] >= lower_bound & df_mat[[col]] <= upper_bound, ]
+}
+```
+
+```{r Cek Outlier Lagi}
+library(ggplot2)
+library(gridExtra)
+
+list_var_numerik <- c("age", "absences", "G1", "G2", "G3")
+
+plot_list <- list()
+
+for (i in seq_along(list_var_numerik)) {
+  var <- list_var_numerik[i]
+  p <- ggplot(df_mat, aes_string(x = var)) +
+    geom_boxplot(fill = "skyblue", color = "black", outlier.color = "red") +
+    labs(title = var, x = NULL, y = NULL) +
+    theme_minimal()
+  plot_list[[i]] <- p
+}
+
+do.call(grid.arrange, c(plot_list, ncol = 3))
+```
+
+Terlihat masih ada sedikit outlier, dan memang sulit untuk menghilangkan outlier sepenuhnya tapi hal ini tidak akan terlalu memengaruhi hasil akhir. Memaksakan outlier untuk hilang sepenuhnya justru bisa membuat data penting ikut hilang.
+
+```{r Transformasi Data}
+library(MASS)
+
+cols <- c("G1", "G2", "G3")
+
+for (col in cols) {
+  if (min(df_mat[[col]], na.rm = TRUE) >= 0) {
+    y <- df_mat[[col]] + 1
+    bc_result <- MASS::boxcox(lm(y ~ 1))
+    lambda <- bc_result$x[which.max(bc_result$y)]
+
+    if (lambda == 0) {
+      df_mat[[col]] <- log(y)
+    } else {
+      df_mat[[col]] <- (y^lambda - 1) / lambda
+    }
+  }
+}
+```
+
+Transformasi data dilakukan dengan menggunakan transformasi Box-Cox. Transformasi Box-Cox diterapkan pada beberapa variabel numerik untuk memperbaiki bentuk distribusi data agar lebih mendekati distribusi normal.
+
+# Uji Asumsi Kembali
+
+```{r Normalitas Univariat}
+for (col in c("G1", "G2", "G3")) {
+  result <- shapiro.test(df_mat[[col]])
+  cat(sprintf("%s: p-value = %.7f\n", col, result$p.value))
+}
+```
+
+Hasil ini tentunya masih menunjukkan bahwa variabel dependen belum normalitas secara univariat, namun cukup terjadi perbedaan yang signifikan dibandingkan sebelumnya.
+
+```{r Normalitas Multivariat}
+library(MVN)
+result <- mvn(data = df_mat[, c("G1", "G2", "G3")], mvnTest = "hz")
+print(result$multivariateNormality)
+```
+
+Hasil ini menunjukkan bahwa variabel dependen juga belum terdistribusi normal secara multivariat meskipun sudah dilakukan handling outlier dan transformasi Box-Cox, namun tetap terjadi peningkatan hasil yang signifikan dibandingkan hasil sebelumnya.
+
+```{r Homogenitas Matriks Kovarians}
+library(biotools)
+
+group_vars <- c("sex", "studytime", "failures", "goout", "famsup", "health", "romantic")
+dv <- c("G1", "G2", "G3")
+
+for (gv in group_vars) {
+  cat(paste0("\n--- Box's M Test untuk grup: ", gv, " ---\n"))
+
+  group <- df_mat[[gv]]
+  data_dv <- df_mat[, dv]
+
+  hasil <- boxM(data_dv, group)
+  
+  chi2 <- hasil$statistic
+  pval <- hasil$p.value
+  equal_cov <- ifelse(pval > 0.05, "Yes", "No")
+
+  cat(sprintf("Chi2: %.4f | p-value: %.4f | Equal covariance: %s\n", chi2, pval, equal_cov))
+}
+```
+
+Karena hanya kolom “failures” yang masih gagal uji homogenitas matriks kovarians, maka diputuskan kolom “failures” dihapus.
+
+```{r Hapus Kolom "Failures"}
+df_mat <- df_mat[, c("sex", "studytime", "goout", "famsup",
+                     "health", "romantic", "age", "absences", "G1", "G2", "G3")]
+
+df_mat
+```
+
+Karena hal ini, maka kita tidak bisa melihat apakah riwayat kegagalan memengaruhi performa akademik siswa sekolah menengah atau tidak.
+
+```{r Linearitas antara DV dengan Kovariat}
+library(ggplot2)
+library(rlang)
+library(patchwork)
+
+dvs <- c("G1", "G2", "G3")
+covariates <- c("age", "absences")
+
+plot_list <- list()
+
+for (dv in dvs) {
+  for (cov in covariates) {
+    p <- ggplot(df_mat, aes(x = !!sym(cov), y = !!sym(dv))) +
+      geom_point(color = "steelblue") +
+      geom_smooth(method = "lm", se = FALSE, color = "red") +
+      ggtitle(paste("Linearitas antara", dv, "dan", cov))
+    plot_list[[paste(dv, cov, sep = "_")]] <- p
+  }
+}
+
+combined_plot <- wrap_plots(plot_list, ncol = length(covariates))
+print(combined_plot)
+```
+
+Data sekarang jauh lebih terpusat dan bersih, terutama pada variabel “absences”, yang sebelumnya sangat skewed (banyak outlier di kanan).
+
+Variabel-variabel DV (G1, G2, G3) kini berada dalam rentang yang lebih sempit dan homogen, berkat transformasi Box-Cox hal ini menunjukkan normalisasi distribusi yang lebih baik.
+
+```{r Multikolinearitas antar Kovariat}
+library(ggplot2)
+library(reshape2)
+library(RColorBrewer)
+
+corr_matrix <- cor(df_mat[, c("age", "absences")])
+
+corr_melted <- melt(corr_matrix)
+
+ggplot(data = corr_melted, aes(x = Var1, y = Var2, fill = value)) +
+  geom_tile(color = "white") +
+  scale_fill_gradient2(
+    low = "blue", mid = "white", high = "red", midpoint = 0,
+    name = "Correlation"
+  ) +
+  geom_text(aes(label = round(value, 2)), color = "black", size = 5) +
+  theme_minimal() +
+  labs(title = "Korelasi antar variabel kovariat", x = "", y = "") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+Setelah dilakukan transformasi dan penanganan outlier, korelasi antara umur dan jumlah absensi meningkat sedikit menjadi 0.21, namun tetap menunjukkan hubungan yang lemah dan positif. Ini mengindikasikan bahwa siswa yang lebih tua sedikit lebih sering absen, tetapi umur hanya menjelaskan sekitar 4,4% variasi dalam jumlah absensi, sehingga tidak menunjukkan hubungan yang substansial. Tidak terdapat indikasi multikolinearitas antar kovariat.
+
+# MANOVA
+
+```{r Copy Dataset (tanpa kovariat)}
+df_mat_copy <- df_mat
+
+df_mat_copy <- df_mat_copy[, !(names(df_mat_copy) %in% c("age", "absences"))]
+
+df_mat_copy
+```
+
+```{r Model MANOVA}
+maov <- manova(cbind(G1, G2, G3) ~ sex + studytime + goout + famsup + health + romantic, data = df_mat_copy)
+
+summary(maov, test = "Wilks")
+summary(maov, test = "Pillai")
+summary(maov, test = "Hotelling-Lawley")
+summary(maov, test = "Roy")
+```
+
+Berdasarkan hasil uji MANOVA terhadap nilai G1, G2, dan G3, ditemukan bahwa waktu belajar (studytime) dan kesehatan (health) memiliki pengaruh signifikan terhadap hasil belajar siswa. Variabel lain seperti jenis kelamin, frekuensi keluar rumah, dukungan keluarga, dan status hubungan romantis tidak menunjukkan pengaruh yang signifikan secara statistik terhadap kombinasi nilai siswa. Meskipun variabel goout menunjukkan signifikansi pada Roy’s Test, hal ini tidak didukung oleh hasil uji lainnya (seperti Wilks atau Pillai), sehingga pengaruhnya bisa dianggap tidak stabil atau lemah.
+
+# MANCOVA
+
+```{r Copy Dataset}
+df_mat_copy <- df_mat
+df_mat_copy
+```
+
+```{r Model MANCOVA}
+maov <- manova(cbind(G1, G2, G3) ~ sex + studytime + goout + famsup + health + romantic + age + absences, data = df_mat_copy)
+
+summary(maov, test = "Wilks")
+summary(maov, test = "Pillai")
+summary(maov, test = "Hotelling-Lawley")
+summary(maov, test = "Roy")
+```
+
+Setelah mempertimbangkan variabel kovariat usia (age) dan ketidakhadiran (absences), hasil analisis MANCOVA menunjukkan bahwa variabel-variabel berikut memiliki pengaruh signifikan terhadap kombinasi nilai G1, G2, dan G3:
+
+-   Studytime (durasi belajar): siswa dengan waktu belajar lebih banyak cenderung memiliki nilai yang lebih baik.
+
+-   Health (kesehatan): siswa dengan kondisi kesehatan yang lebih baik menunjukkan hasil belajar yang lebih baik.
+
+-   Age (usia): usia siswa berhubungan secara signifikan dengan nilai akademik, mungkin berkaitan dengan kematangan atau fase perkembangan.
+
+-   Absences (jumlah ketidakhadiran): semakin sering siswa absen, semakin buruk performa akademiknya.
+
+Variabel seperti jenis kelamin (sex), dukungan keluarga (famsup), hubungan romantis (romantic), dan aktivitas keluar rumah (goout) tidak menunjukkan pengaruh signifikan yang konsisten terhadap nilai akademik setelah mempertimbangkan pengaruh usia dan absensi.
