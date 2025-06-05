@@ -68,7 +68,7 @@ Untuk mereplikasi analisis ini:
 
 1.Pastikan Anda memiliki R dan RStudio (atau environment R lainnya) terinstal.
 
-2.Instal paket R yang diperlukan:
+2.Instal paket R yang diperlukan
 
 3.Unduh file hasilproject_RMarkdown.Rmd dan dataset student-mat.csv.
 
@@ -79,5 +79,6 @@ Untuk mereplikasi analisis ini:
 **Kontributor**
 
 Kelompok 6 (Kelas 23B)
+@putri-manika
 
 Catatan: README ini dibuat berdasarkan konten dari file hasilproject_RMarkdown.Rmd.    
