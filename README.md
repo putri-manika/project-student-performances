@@ -78,7 +78,7 @@ Untuk mereplikasi analisis ini:
 
 **Kontributor**
 
-Dimas Fatkhul Rahman
+Dimas Fatkhul Rahman (@dimasszeeh)
 
 Fadhil Muhammad
 
