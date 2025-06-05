@@ -80,6 +80,6 @@ Untuk mereplikasi analisis ini:
 
 Dimas Fatkhul Rahman (@dimasszeeh)
 
-Fadhil Muhammad
+Fadhil Muhammad (@fadhilmu)
 
 Putri Manika Rukmamaya (@putri-manika)
