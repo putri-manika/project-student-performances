@@ -78,10 +78,8 @@ Untuk mereplikasi analisis ini:
 
 **Kontributor**
 
-Kelompok 6 (Kelas 23B)
+Dimas Fatkhul Rahman
 
 Fadhil Muhammad
-
-Dimas Fatkhul Rahman
 
 Putri Manika Rukmamaya (@putri-manika)
