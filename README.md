@@ -56,9 +56,9 @@ Analisis dalam file R Markdown (hasilproject_RMarkdown.Rmd) mencakup langkah-lan
 
 **Hasil Utama**
 
-•**MANOVA**: Menunjukkan bahwa studytime (waktu belajar) dan health (kesehatan) memiliki pengaruh signifikan secara statistik terhadap kombinasi nilai G1, G2, dan G3. Faktor lain seperti sex, goout, famsup, dan romantic tidak menunjukkan pengaruh signifikan.
+**MANOVA**: Menunjukkan bahwa studytime (waktu belajar) dan health (kesehatan) memiliki pengaruh signifikan secara statistik terhadap kombinasi nilai G1, G2, dan G3. Faktor lain seperti sex, goout, famsup, dan romantic tidak menunjukkan pengaruh signifikan.
 
-•**MANCOVA**: Setelah mengontrol variabel age (usia) dan absences (jumlah absensi), analisis menunjukkan bahwa studytime, health, age, dan absences memiliki pengaruh signifikan terhadap performa akademik siswa. Siswa dengan waktu belajar lebih lama, kesehatan lebih baik, usia tertentu (kemungkinan terkait kematangan), dan jumlah absensi lebih sedikit cenderung memiliki nilai lebih baik. Faktor sex, goout, famsup, dan romantic tetap tidak signifikan.
+**MANCOVA**: Setelah mengontrol variabel age (usia) dan absences (jumlah absensi), analisis menunjukkan bahwa studytime, health, age, dan absences memiliki pengaruh signifikan terhadap performa akademik siswa. Siswa dengan waktu belajar lebih lama, kesehatan lebih baik, usia tertentu (kemungkinan terkait kematangan), dan jumlah absensi lebih sedikit cenderung memiliki nilai lebih baik. Faktor sex, goout, famsup, dan romantic tetap tidak signifikan.
 
 Perbandingan antara MANOVA dan MANCOVA menyoroti pentingnya mempertimbangkan kovariat. Usia dan absensi terbukti menjadi faktor penting yang memengaruhi performa akademik, dan mengontrolnya memberikan pemahaman yang lebih akurat tentang pengaruh faktor lainnya.
 
