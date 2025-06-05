@@ -63,6 +63,7 @@ Analisis dalam file R Markdown (hasilproject_RMarkdown.Rmd) mencakup langkah-lan
 Perbandingan antara MANOVA dan MANCOVA menyoroti pentingnya mempertimbangkan kovariat. Usia dan absensi terbukti menjadi faktor penting yang memengaruhi performa akademik, dan mengontrolnya memberikan pemahaman yang lebih akurat tentang pengaruh faktor lainnya.
 
 **Cara Menjalankan**
+
 Untuk mereplikasi analisis ini:
 
 1.Pastikan Anda memiliki R dan RStudio (atau environment R lainnya) terinstal.
@@ -76,6 +77,7 @@ Untuk mereplikasi analisis ini:
 5.Buka file .Rmd di RStudio dan jalankan semua code chunk atau gunakan tombol "Knit" untuk menghasilkan dokumen output (misalnya, Word).
 
 **Kontributor**
+
 Kelompok 6 (Kelas 23B)
 
 Catatan: README ini dibuat berdasarkan konten dari file hasilproject_RMarkdown.Rmd.    
