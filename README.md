@@ -79,6 +79,9 @@ Untuk mereplikasi analisis ini:
 **Kontributor**
 
 Kelompok 6 (Kelas 23B)
-@putri-manika
 
-Catatan: README ini dibuat berdasarkan konten dari file hasilproject_RMarkdown.Rmd.    
+Fadhil Muhammad
+
+Dimas Fatkhul Rahman
+
+Putri Manika Rukmamaya (@putri-manika)
