@@ -1,4 +1,4 @@
-## Perbandingan Analisis MANOVA dan MANCOVA: Pengaruh Faktor Sosial dan Akademik terhadap Performa Siswa
+## Perbandingan Analisis MANOVA dan MANCOVA: Pengaruh Faktor Sosial dan Akademik terhadap Performa Siswa Sekolah Menengah
 
 **Deskripsi Proyek**
 
